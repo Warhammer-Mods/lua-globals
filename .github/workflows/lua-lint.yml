@@ -1,0 +1,66 @@
+name: Lua lint
+
+on: 
+  push:
+    branches:
+      - master
+      - develop
+      - 'feature/**'
+      - 'hotfix/**'
+      - 'bugfix/**'
+      - 'support/**'
+      - 'update/**'
+  pull_request:
+    branches:
+      - master
+      - develop
+      - 'feature/**'
+      - 'hotfix/**'
+      - 'bugfix/**'
+      - 'support/**'
+      - 'update/**'
+  workflow_dispatch:
+
+env:
+  FILES_TO_CHECK: >-
+    .
+  LUACHECK_CONFIG: .luacheckrc
+  LUA_VERSION: "5.1"
+  LUAROCKS_VERSION: "3.7.0"
+
+jobs:
+
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - uses: leafo/gh-actions-lua@v8.0.0
+      with:
+        luaVersion: ${{ env.LUA_VERSION }}
+        
+    - uses: leafo/gh-actions-luarocks@v4.1.0
+      with:
+        luarocksVersion: ${{ env.LUAROCKS_VERSION }}
+        
+    - name: Install luacheck
+      run: luarocks install luacheck
+
+    - name: Luacheck Lint
+      id: luacheck
+      shell: bash --noprofile --norc {0}
+      run: |
+        echo "::add-matcher::.github/luacheck-plain.json"
+        luacheck ${{ env.FILES_TO_CHECK }} \
+          --formatter plain \
+          --codes --ranges \
+          --config ${{ env.LUACHECK_CONFIG }}
+        exitcode=$?
+        echo "::remove-matcher owner=luacheck-plain_error::"
+        echo "::remove-matcher owner=luacheck-plain_warning::"
+        if [ "$exitcode" -gt 1 ]; then
+          exit $exitcode;
+        else
+          exit 0;
+        fi

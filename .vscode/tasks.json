@@ -1,0 +1,13 @@
+{
+  // See https://go.microsoft.com/fwlink/?LinkId=733558
+  // for the documentation about the tasks.json format
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "write_rockspec",
+      "type": "shell",
+      "command": "luarocks write_rockspec --lua-versions=\"5.1,5.2,5.3,5.4\" --license=\"MIT\"",
+      "problemMatcher": []
+    }
+  ]
+}
