@@ -92,7 +92,7 @@ jobs:
           IFS='\n'
           [[ -z $changes_tracked ]] || \
           for line in "${changes_tracked}"; do
-            file=$(cut -d" " -f2 <<< ${line})
+            file=$(cut -d" " -f3 <<< ${line})
             files+=("${{ env.REPO_PATH }}/${file}")
             echo "::notice file=${file}::File changed: ${file}"
             echo "::debug::$(git diff ${file})"

@@ -3,7 +3,7 @@ name: Lua lint
 on: 
   push:
     branches:
-      - master
+      - main
       - develop
       - 'feature/**'
       - 'hotfix/**'
@@ -12,7 +12,7 @@ on:
       - 'update/**'
   pull_request:
     branches:
-      - master
+      - main
       - develop
       - 'feature/**'
       - 'hotfix/**'
