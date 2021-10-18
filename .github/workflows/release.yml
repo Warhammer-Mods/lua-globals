@@ -74,6 +74,7 @@ jobs:
         cd ${{ env.REPO_PATH }}
         rm -f *.rockspec
         luarocks write_rockspec \
+          --tag=${GITHUB_REF##*/} \
           --lua-versions="${{ env.ROCKSPEC_LUA_VERSION }}" \
           --license="${{ env.ROCKSPEC_LICENSE }}"
 
@@ -199,7 +200,7 @@ jobs:
         luarocksVersion: ${{ env.LUAROCKS_VERSION }}
         
     - name: Install lua-cjson
-      run: luarocks install lua-cjson
+      run: luarocks install dkjson
 
     - uses: actions/checkout@v2
       with:
