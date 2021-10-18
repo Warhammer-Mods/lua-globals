@@ -25,7 +25,7 @@ env:
   FILES_TO_CHECK: >-
     .
   LUACHECK_CONFIG: .luacheckrc
-  LUA_VERSION: "5.1"
+  LUA_VERSION: "5.4"
   LUAROCKS_VERSION: "3.7.0"
 
 jobs:
