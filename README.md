@@ -5,10 +5,10 @@ Prints all Lua globals being declared (written) or accessed (read) by a supplied
 ## Usage
 
 ```bash
-lua show_globals.lua RW < your_script.lua
+lua lua_globals.lua RW 51 < your_script.lua
 ```
 
-`lua show_globals.lua [R|W|RW] < file.lua`
+`lua lua_globals.lua [R|W|RW] [51|52|53|54] < file.lua`
 
 All argumemts are optional.
 
@@ -19,6 +19,9 @@ All argumemts are optional.
     Display only write access to globals.
   - `RW`
     Display read and write access to globals (default).
+- `51` | `52` | `53` | `54`  
+  Set Lua version to interpret the passed script with.  
+  Default: `54`
 
 ## Credits
 

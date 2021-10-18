@@ -3,7 +3,7 @@
 -- Display list of globals used by your Lua script
 ---------------------------------------------------------------------------------------------------------------------------------------
 -- Version: 2019-03-28
--- License: MIT (see LICENSE file)
+-- License: MIT (see at the end of this file)
 --
 -- Reads your Lua script from STDIN
 -- Writes list of globals to STDOUT (if the script is syntactically correct)
@@ -12,16 +12,21 @@
 -- Usage examples (both Windows and Linux):
 --
 --    How to display all the globals access (both read and write)
---       lua show_globals.lua RW < your_script.lua
+--       lua show_globals.lua RW 51 < your_script.lua
 --
 --    How to display only write access to globals
 --       lua show_globals.lua W < your_script.lua
-
-local Lua_version = "Lua 5.3"  -- set here Lua version "your_script.lua" was written for
+--
+--    How to set 5.3 as Lua version for interpreting "your_script.lua"
+--       lua show_globals.lua W < your_script.lua
 
 local read_write_access = (arg[1] or "RW"):upper()  -- what type of access (read/write/both) should be displayed
 read_write_access = {R = read_write_access:find"R", W = read_write_access:find"W"}
 assert(read_write_access.R or read_write_access.W, "First argument must be R, W or RW")
+
+local Lua_version = (arg[2] or "54")  -- sets Lua version "your_script.lua" was written for
+local all_supported_versions = { ["51"] = true, ["52"] = true, ["53"] = true, ["54"] = true }
+assert(all_supported_versions[Lua_version], "Second argument must be either '51', '52', '53' or '54'")
 
 local parser
 do
@@ -92,8 +97,6 @@ do
       end
 
       local all_scanners = {}
-
-      local all_supported_versions = { ["51"] = true, ["52"] = true, ["53"] = true, ["54"] = true }
 
       function scanner(version)
          version = gsub(version, "%D", "")
@@ -486,8 +489,6 @@ do
    }
 
    local all_parsers = {}
-
-   local all_supported_versions = { ["51"] = true, ["52"] = true, ["53"] = true, ["54"] = true }
 
    function parser(version)
       version = gsub(version, "%D", "")
