@@ -199,7 +199,7 @@ jobs:
       with:
         luarocksVersion: ${{ env.LUAROCKS_VERSION }}
         
-    - name: Install lua-cjson
+    - name: Install dkjson
       run: luarocks install dkjson
 
     - uses: actions/checkout@v2
