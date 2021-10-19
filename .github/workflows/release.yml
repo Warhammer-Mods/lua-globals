@@ -9,6 +9,9 @@ on:
       tag:
         description: Target tag/branch
         required: false
+      revision:
+        description: Target rockspec revision
+        required: false
 
 env:
   ROCKSPEC_LICENSE: "MIT"
@@ -113,6 +116,15 @@ jobs:
           --tag=${GITHUB_REF##*/} \
           --lua-versions="${{ env.ROCKSPEC_LUA_VERSION }}" \
           --license="${{ env.ROCKSPEC_LICENSE }}"
+        
+        if [[ ! -z github.event.inputs.revision ]]; then
+          og_name=$(basename *.rockspec)
+          new_name=$(sed 's/-${{github.event.inputs.tag}}-\d+/-${{github.event.inputs.tag}}-${{github.event.inputs.revision}}/')
+          sed -i \
+            's/^version =.*$/version = ${{ format('\"{0}-{1}\"', github.event.inputs.tag, github.event.inputs.revision) }}/' \
+            ${og_name}
+          mv -v ${og_name} ${new_name}
+        fi
 
     - name: Get file changes
       id: changes
