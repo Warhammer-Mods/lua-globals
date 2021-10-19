@@ -1,2 +1,2 @@
 #!/usr/bin/env lua
-require "lua-globals.main"
+require "lua-globals"
