@@ -218,21 +218,6 @@ jobs:
         github_token: ${{ secrets.BOT_TOKEN }}
         branch: ${{ needs.lint-and-update.outputs.branch }}
 
-    - uses: actions/checkout@v2
-      with:
-        fetch-depth: 0
-        ref: refs/tags/release/${{ needs.lint-and-update.outputs.tag }}
-        token: "${{ secrets.BOT_TOKEN }}"
-
-    - name: Release
-      id: release
-      uses: marvinpinto/action-automatic-releases@v1.2.1
-      with:
-        repo_token: "${{ secrets.BOT_TOKEN }}"
-        prerelease: ${{ contains('dev', needs.lint-and-update.outputs.tag) && 'true' || 'false' }}
-        draft: ${{ github.event.inputs.tag && 'true' || 'false' }}
-        automatic_release_tag: release/${{ github.event.inputs.tag || null }}
-
   deploy:
     needs: [lint-and-update, release]
     runs-on: ubuntu-latest
