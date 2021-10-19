@@ -5,12 +5,17 @@ on:
     tags:
       - "v*"
   workflow_dispatch:
+    inputs:
+      tag:
+        description: Target tag/branch
+        required: false
+      revision:
+        description: Target rockspec revision
+        required: false
 
 env:
   ROCKSPEC_LICENSE: "MIT"
   ROCKSPEC_LUA_VERSION: "5.1,5.2,5.3,5.4"
-  FILES_TO_CHECK: >-
-    .
   GIT_AUTHOR_NAME: "github-actions[bot]"
   GIT_AUTHOR_EMAIL: "41898282+github-actions[bot]@users.noreply.github.com"
   GIT_COMMITTER_NAME: "github-actions[bot]"
@@ -25,6 +30,9 @@ jobs:
   lint-and-update:
     runs-on: ubuntu-latest
     outputs:
+      name: ${{ steps.info.outputs.name }}
+      tag: ${{ steps.info.outputs.tag }}
+      branch: ${{ steps.branch.outputs.branch }}
       clean: ${{ steps.changes.outputs.clean }}
       files: ${{ steps.changes.outputs.files }}
       rockspec: ${{ steps.changes.outputs.rockspec }}
@@ -32,8 +40,17 @@ jobs:
     steps:
 
     - name: Fetch Repo Info
-      id: repo
-      run: echo "REPO_PATH=$(echo '${{ github.repository }}' | awk -F '/' '{print $2}')" >> $GITHUB_ENV
+      id: info
+      run: |
+        echo "::set-output name=name::$(echo '${{ github.repository }}' | awk -F '/' '{print $2}')"
+        echo "::set-output name=tag::$(
+          if [[ -z ${{ github.event.inputs.tag }} ]]; then
+            echo "${GITHUB_REF##*/}"
+          else
+            echo "${{ github.event.inputs.tag }}"
+          fi
+        )"
+
 
     - uses: leafo/gh-actions-lua@v8.0.0
       with:
@@ -48,18 +65,40 @@ jobs:
 
     - uses: actions/checkout@v2
       with:
-        path: ${{ env.REPO_PATH }}
+        path: ${{ steps.info.outputs.name }}
+
+    - id: branch
+      run: |
+        cd ${{ steps.info.outputs.name }}
+        branch=$(git rev-parse --abbrev-ref HEAD)
+        if [[ ${branch} == "${{github.event.inputs.tag}}" ]]; then
+          echo "::debug::${branch} == ${{ github.event.inputs.tag }}"
+        elif [[ -z "$(git rev-parse --verify --quiet ${{github.event.inputs.tag}})" ]]; then
+          echo "::debug::Branch \"${{ github.event.inputs.tag }}\" not found"
+          response=$(
+            curl -sL --fail \
+              --header 'Accept: application/vnd.github.v3+json' \
+              -u ${{ github.actor }}:${{ secrets.GITHUB_TOKEN }} \
+              ${GITHUB_API_URL}/repos/${{ github.repository }}
+          )
+          echo "::debug::API response: $(jq -rc <<< ${response})"
+          branch=$(jq -r '.default_branch' <<< ${response})
+        else
+          branch=${{github.event.inputs.tag}}
+        fi
+        echo "::debug::Branch: ${branch}"
+        echo "::set-output name=branch::${branch}"
 
     - name: Luacheck Lint
       id: luacheck
       shell: bash --noprofile --norc {0}
       run: |
-        cd ${{ env.REPO_PATH }}
-        echo "::add-matcher::${{ env.REPO_PATH }}/.github/luacheck-plain.json"
-        luacheck ${{ env.FILES_TO_CHECK }} \
+        echo "::add-matcher::${{ steps.info.outputs.name }}/.github/luacheck-plain.json"
+        cd ${{ steps.info.outputs.name }}
+        luacheck *.rockspec \
           --formatter plain \
           --codes --ranges \
-          --config ${{ env.LUACHECK_CONFIG }}
+          ${{ env.LUACHECK_CONFIG && format('--config {0}', env.LUACHECK_CONFIG) }}
         exitcode=$?
         echo "::remove-matcher owner=luacheck-plain_error::"
         echo "::remove-matcher owner=luacheck-plain_warning::"
@@ -71,17 +110,26 @@ jobs:
 
     - name: Update rockspec
       run: |
-        cd ${{ env.REPO_PATH }}
+        cd ${{ steps.info.outputs.name }}
         rm -f *.rockspec
         luarocks write_rockspec \
           --tag=${GITHUB_REF##*/} \
           --lua-versions="${{ env.ROCKSPEC_LUA_VERSION }}" \
           --license="${{ env.ROCKSPEC_LICENSE }}"
+        
+        if [[ ! -z github.event.inputs.revision ]]; then
+          og_name=$(basename *.rockspec)
+          new_name=${og_name/-${{github.event.inputs.tag}}-[0-9]/-${{ github.event.inputs.tag }}-${{ github.event.inputs.revision }}}
+          sed -i \
+            's/^version =.*$/version = ${{ format('\"{0}-{1}\"', github.event.inputs.tag, github.event.inputs.revision) }}/' \
+            ${og_name}
+          mv -v ${og_name} ${new_name}
+        fi
 
     - name: Get file changes
       id: changes
       run: |
-        cd ${{ env.REPO_PATH }}
+        cd ${{ steps.info.outputs.name }}
         changes="$(git status --porcelain=2 *.rockspec)"
         echo "::debug::${changes}"
         if [ -z "${changes}" ]; then
@@ -94,14 +142,14 @@ jobs:
           [[ -z $changes_tracked ]] || \
           for line in "${changes_tracked}"; do
             file=$(cut -d" " -f3 <<< ${line})
-            files+=("${{ env.REPO_PATH }}/${file}")
+            files+=("${{ steps.info.outputs.name }}/${file}")
             echo "::notice file=${file}::File changed: ${file}"
             echo "::debug::$(git diff ${file})"
           done
           changes_untracked="$(git ls-files --others --exclude-standard *.rockspec)"
           [[ -z $changes_untracked ]] || \
           for file in "${changes_untracked}"; do
-            files+=("${{ env.REPO_PATH }}/${file}")
+            files+=("${{ steps.info.outputs.name }}/${file}")
             echo "::notice file=${file}::New file: ${file}"
             echo "::debug::$(git diff ${file})"
           done
@@ -129,14 +177,13 @@ jobs:
     runs-on: ubuntu-latest
     needs: lint-and-update
     if: needs.lint-and-update.outputs.clean == 'false'
-    outputs:
-      tag: ${{ steps.commit.outputs.tag }}
-      branch: ${{ steps.commit.outputs.branch }}
 
     steps:
+
     - uses: actions/checkout@v2
       with:
         fetch-depth: 0
+        token: "${{ secrets.BOT_TOKEN }}"
 
     - name: Remove existing rockspec
       run: git rm -f *.rockspec
@@ -150,46 +197,32 @@ jobs:
       id: commit
       run: |
         tag_message="$(git tag -l --format='%(contents)' ${GITHUB_REF##*/})"
-        branch=$(git branch --show-current)
-        tag=${GITHUB_REF##*/}
-        echo "::set-output name=branch::${branch}"
-        echo "::set-output name=tag::${tag}"
         git config --local user.email ${{ env.GIT_AUTHOR_EMAIL }}
         git config --local user.name ${{ env.GIT_AUTHOR_NAME }}
         git add *.rockspec
-        git commit -m "[Luarocks] Update rockspec"
+        git commit -m "[Luarocks] Update rockspec to ${{ needs.lint-and-update.outputs.tag }}"
         if ${{ startsWith(github.ref, 'refs/tags/') }}; then
-          git tag -a "release/${tag}" -m "${tag_message}"
+          git tag -a "release/${{ needs.lint-and-update.outputs.tag }}" -m "${tag_message} ${{ github.event.inputs.tag && '-f' }}"
         fi
 
     - name: Push release tag
       uses: ad-m/github-push-action@master
       with:
         github_token: ${{ secrets.BOT_TOKEN }}
-        branch: refs/tags/release/${{ steps.commit.outputs.tag }}
+        branch: refs/tags/release/${{ needs.lint-and-update.outputs.tag }}
+        force: ${{ github.event.inputs.tag && 'true' || 'false' }}
 
     - name: Push branch
       uses: ad-m/github-push-action@master
       with:
         github_token: ${{ secrets.BOT_TOKEN }}
-        branch: ${{ steps.commit.outputs.branch }}
-
-    - name: Release
-      id: release
-      uses: "marvinpinto/action-automatic-releases@v1.2.1"
-      with:
-        repo_token: "${{ secrets.GITHUB_TOKEN }}"
-        prerelease: false
+        branch: ${{ needs.lint-and-update.outputs.branch }}
 
   deploy:
     needs: [lint-and-update, release]
     runs-on: ubuntu-latest
 
     steps:
-
-    - name: Fetch Repo Info
-      id: repo
-      run: echo "REPO_PATH=$(echo '${{ github.repository }}' | awk -F '/' '{print $2}')" >> $GITHUB_ENV
 
     - uses: leafo/gh-actions-lua@v8.0.0
       with:
@@ -199,17 +232,18 @@ jobs:
       with:
         luarocksVersion: ${{ env.LUAROCKS_VERSION }}
         
-    - name: Install lua-cjson
+    - name: Install dkjson
       run: luarocks install dkjson
 
     - uses: actions/checkout@v2
       with:
-        path: ${{ env.REPO_PATH }}
-        ref: refs/tags/release/${{ needs.release.outputs.tag }}
+        path: ${{ needs.lint-and-update.outputs.name }}
+        ref: refs/tags/release/${{ needs.lint-and-update.outputs.tag }}
 
     - name: Upload rock
       run: |
-        cd ${{ env.REPO_PATH }}
+        cd ${{ needs.lint-and-update.outputs.name }}
         luarocks upload \
+          ${{ github.event.inputs.tag && '--force' }} \
           --api-key="${{ secrets.LUAROCKS_API_KEY }}" \
           "${{ needs.lint-and-update.outputs.rockspec }}"

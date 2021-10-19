@@ -6,7 +6,13 @@
     {
       "label": "write_rockspec",
       "type": "shell",
-      "command": "luarocks write_rockspec --lua-versions=\"5.1,5.2,5.3,5.4\" --license=\"MIT\"",
+      "command": [
+        "luarocks", 
+        "write_rockspec", 
+        "--license=\"MIT\"",
+        "--tag=\"main\"",
+        "--lua-versions=\"5.1,5.2,5.3,5.4\""
+      ],
       "problemMatcher": []
     }
   ]
