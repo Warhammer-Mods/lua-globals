@@ -5,10 +5,10 @@ Prints all Lua globals being declared (written) or accessed (read) by a supplied
 ## Usage
 
 ```bash
-lua lua_globals.lua RW 51 < your_script.lua
+lua-globals RW 51 < your_script.lua
 ```
 
-`lua lua_globals.lua [R|W|RW] [51|52|53|54] < file.lua`
+`lua-globals [R|W|RW] [51|52|53|54] < file.lua`
 
 All argumemts are optional.
 
