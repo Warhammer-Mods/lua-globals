@@ -1,5 +1,5 @@
 package = "lua-globals"
-version = "develop-2"
+version = "develop-3"
 source = {
    url = "git+https://github.com/Warhammer-Mods/lua-globals",
    tag = "develop"
