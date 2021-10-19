@@ -44,7 +44,7 @@ jobs:
       run: |
         echo "::set-output name=name::$(echo '${{ github.repository }}' | awk -F '/' '{print $2}')"
         echo "::set-output name=tag::$(
-          if [[ -z ${{ github.event.inputs.tag }} ]]; then
+          if [[ -z "${{ github.event.inputs.tag }}" ]]; then
             echo "${GITHUB_REF##*/}"
           else
             echo "${{ github.event.inputs.tag }}"
@@ -117,7 +117,7 @@ jobs:
           --lua-versions="${{ env.ROCKSPEC_LUA_VERSION }}" \
           --license="${{ env.ROCKSPEC_LICENSE }}"
         
-        if [[ ! -z github.event.inputs.revision ]]; then
+        if [[ ! -z "${{ github.event.inputs.revision }}" ]]; then
           og_name=$(basename *.rockspec)
           new_name=${og_name/-${{github.event.inputs.tag}}-[0-9]/-${{ github.event.inputs.tag }}-${{ github.event.inputs.revision }}}
           sed -i \
@@ -139,7 +139,7 @@ jobs:
           changes_tracked="$(git status --porcelain=1 --untracked-files=no *.rockspec)"
           og_IFS=$IFS
           IFS='\n'
-          [[ -z $changes_tracked ]] || \
+          [[ -z "$changes_tracked" ]] || \
           for line in "${changes_tracked}"; do
             file=$(cut -d" " -f3 <<< ${line})
             files+=("${{ steps.info.outputs.name }}/${file}")
@@ -147,7 +147,7 @@ jobs:
             echo "::debug::$(git diff ${file})"
           done
           changes_untracked="$(git ls-files --others --exclude-standard *.rockspec)"
-          [[ -z $changes_untracked ]] || \
+          [[ -z "$changes_untracked" ]] || \
           for file in "${changes_untracked}"; do
             files+=("${{ steps.info.outputs.name }}/${file}")
             echo "::notice file=${file}::New file: ${file}"

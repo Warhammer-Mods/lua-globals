@@ -1,8 +1,8 @@
 package = "lua-globals"
-version = "0.1.0-1"
+version = "main-1"
 source = {
-   url = "git+https://github.com/Warhammer-Mods/lua-globals",
-   tag = "v0.1.0"
+   url = "git+https://github.com/Warhammer-Mods/lua-globals.git",
+   tag = "main"
 }
 description = {
    detailed = "Prints all Lua globals being declared (written) or accessed (read) by a supplied lua script.",
@@ -15,6 +15,11 @@ dependencies = {
 build = {
    type = "builtin",
    modules = {
-      lua_globals = "lua_globals.lua"
+      ["lua-globals"] = "src/lua-globals.lua"
+   },
+   install = {
+      bin = {
+         "bin/lua-globals.lua"
+      }
    }
 }
