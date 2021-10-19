@@ -72,9 +72,9 @@ jobs:
         cd ${{ steps.info.outputs.name }}
         branch=$(git rev-parse --abbrev-ref HEAD)
         if [[ ${branch} == "${{github.event.inputs.tag}}" ]]; then
-          echo "::debug::${branch} == ${{github.event.inputs.tag}}"
+          echo "::debug::${branch} == ${{ github.event.inputs.tag }}"
         elif [[ -z "$(git rev-parse --verify --quiet ${{github.event.inputs.tag}})" ]]; then
-          echo "::debug::Branch \"${{github.event.inputs.tag}}\" not found"
+          echo "::debug::Branch \"${{ github.event.inputs.tag }}\" not found"
           response=$(
             curl -sL --fail \
               --header 'Accept: application/vnd.github.v3+json' \
@@ -179,9 +179,11 @@ jobs:
     if: needs.lint-and-update.outputs.clean == 'false'
 
     steps:
+
     - uses: actions/checkout@v2
       with:
         fetch-depth: 0
+        token: "${{ secrets.BOT_TOKEN }}"
 
     - name: Remove existing rockspec
       run: git rm -f *.rockspec
@@ -203,7 +205,6 @@ jobs:
           git tag -a "release/${{ needs.lint-and-update.outputs.tag }}" -m "${tag_message} ${{ github.event.inputs.tag && '-f' }}"
         fi
 
-
     - name: Push release tag
       uses: ad-m/github-push-action@master
       with:
@@ -217,12 +218,19 @@ jobs:
         github_token: ${{ secrets.BOT_TOKEN }}
         branch: ${{ needs.lint-and-update.outputs.branch }}
 
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+        ref: refs/tags/release/${{ needs.lint-and-update.outputs.tag }}
+        token: "${{ secrets.BOT_TOKEN }}"
+
     - name: Release
       id: release
-      uses: "marvinpinto/action-automatic-releases@v1.2.1"
+      uses: marvinpinto/action-automatic-releases@v1.2.1
       with:
-        repo_token: "${{ secrets.GITHUB_TOKEN }}"
-        prerelease: ${{ startsWith(needs.lint-and-update.outputs.tag, 'v') && 'false' || 'true' }}
+        repo_token: "${{ secrets.BOT_TOKEN }}"
+        prerelease: ${{ contains('dev', needs.lint-and-update.outputs.tag) && 'true' || 'false' }}
+        draft: ${{ github.event.inputs.tag && 'true' || 'false' }}
         automatic_release_tag: release/${{ github.event.inputs.tag || null }}
 
   deploy:
