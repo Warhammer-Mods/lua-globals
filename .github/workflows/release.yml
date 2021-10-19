@@ -8,8 +8,7 @@ on:
     inputs:
       tag:
         description: Target tag/branch
-        required: true
-        default: 'main'
+        required: false
 
 env:
   ROCKSPEC_LICENSE: "MIT"
@@ -67,8 +66,25 @@ jobs:
 
     - id: branch
       run: |
-        branch=$(git -C ${{ steps.info.outputs.name }} branch --show-current)
-        echo "::set-output name=tag::${branch}"
+        cd ${{ steps.info.outputs.name }}
+        branch=$(git rev-parse --abbrev-ref HEAD)
+        if [[ ${branch} == "${{github.event.inputs.tag}}" ]]; then
+          echo "::debug::${branch} == ${{github.event.inputs.tag}}"
+        elif [[ -z "$(git rev-parse --verify --quiet ${{github.event.inputs.tag}})" ]]; then
+          echo "::debug::Branch \"${{github.event.inputs.tag}}\" not found"
+          response=$(
+            curl -sL --fail \
+              --header 'Accept: application/vnd.github.v3+json' \
+              -u ${{ github.actor }}:${{ secrets.GITHUB_TOKEN }} \
+              ${GITHUB_API_URL}/repos/${{ github.repository }}
+          )
+          echo "::debug::API response: $(jq -rc <<< ${response})"
+          branch=$(jq -r '.default_branch' <<< ${response})
+        else
+          branch=${{github.event.inputs.tag}}
+        fi
+        echo "::debug::Branch: ${branch}"
+        echo "::set-output name=branch::${branch}"
 
     - name: Luacheck Lint
       id: luacheck
@@ -194,7 +210,7 @@ jobs:
       with:
         repo_token: "${{ secrets.GITHUB_TOKEN }}"
         prerelease: ${{ startsWith(needs.lint-and-update.outputs.tag, 'v') && 'false' || 'true' }}
-        automatic_release_tag: ${{ github.event.inputs.tag || null }}
+        automatic_release_tag: release/${{ github.event.inputs.tag || null }}
 
   deploy:
     needs: [lint-and-update, release]
