@@ -120,10 +120,15 @@ jobs:
         if [[ ! -z "${{ github.event.inputs.revision }}" ]]; then
           og_name=$(basename *.rockspec)
           new_name=${og_name/-${{github.event.inputs.tag}}-[0-9]/-${{ github.event.inputs.tag }}-${{ github.event.inputs.revision }}}
-          sed -i \
-            's/^version =.*$/version = ${{ format('\"{0}-{1}\"', github.event.inputs.tag, github.event.inputs.revision) }}/' \
-            ${og_name}
-          mv -v ${og_name} ${new_name}
+          if [[ "$og_name" != "$new_name" ]]; then
+            sed -i \
+              's/^version =.*$/version = ${{ format(
+                '\"{0}-{1}\"', 
+                github.event.inputs.tag, 
+                github.event.inputs.revision ) }}/' \
+              ${og_name}
+            mv -v ${og_name} ${new_name}
+          fi
         fi
 
     - name: Get file changes
