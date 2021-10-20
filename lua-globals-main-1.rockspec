@@ -1,8 +1,8 @@
 package = "lua-globals"
-version = "0.1.3-1"
+version = "main-1"
 source = {
    url = "git+https://github.com/Warhammer-Mods/lua-globals",
-   tag = "v0.1.3"
+   tag = "main"
 }
 description = {
    detailed = "Prints all Lua globals being declared (written) or accessed (read) by a supplied lua script.",
