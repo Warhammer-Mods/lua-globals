@@ -2,8 +2,9 @@
 ---------------------------------------------------------------------------------------------------------------------------------------
 -- Display list of globals used by your Lua script
 ---------------------------------------------------------------------------------------------------------------------------------------
--- Version: 2019-03-28
+-- Version: 2021-10-20
 -- License: MIT (see at the end of this file)
+-- Updated by: im-mortal
 --
 -- Reads your Lua script from STDIN
 -- Writes list of globals to STDOUT (if the script is syntactically correct)
