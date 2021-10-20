@@ -222,6 +222,7 @@ jobs:
       with:
         github_token: ${{ secrets.BOT_TOKEN }}
         branch: ${{ needs.lint-and-update.outputs.branch }}
+        force: ${{ github.event.inputs.tag && 'true' || 'false' }}
 
   deploy:
     needs: [lint-and-update, release]
