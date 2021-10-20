@@ -113,7 +113,7 @@ jobs:
         cd ${{ steps.info.outputs.name }}
         rm -f *.rockspec
         luarocks write_rockspec \
-          --tag=${GITHUB_REF##*/} \
+          --tag=${{ steps.info.outputs.tag }} \
           --lua-versions="${{ env.ROCKSPEC_LUA_VERSION }}" \
           --license="${{ env.ROCKSPEC_LICENSE }}"
         
