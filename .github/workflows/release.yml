@@ -12,6 +12,10 @@ on:
       revision:
         description: Target rockspec revision
         required: false
+      deploy:
+        description: Should also deploy to Luarocks?
+        required: false
+        default: 'false'
 
 env:
   ROCKSPEC_LICENSE: "MIT"
@@ -109,26 +113,21 @@ jobs:
         fi
 
     - name: Update rockspec
+      if: github.event.inputs.revision
       run: |
         cd ${{ steps.info.outputs.name }}
-        rm -f *.rockspec
-        luarocks write_rockspec \
-          --tag=${{ steps.info.outputs.tag }} \
-          --lua-versions="${{ env.ROCKSPEC_LUA_VERSION }}" \
-          --license="${{ env.ROCKSPEC_LICENSE }}"
-        
-        if [[ ! -z "${{ github.event.inputs.revision }}" ]]; then
-          og_name=$(basename *.rockspec)
-          new_name=${og_name/-${{github.event.inputs.tag}}-[0-9]/-${{ github.event.inputs.tag }}-${{ github.event.inputs.revision }}}
-          if [[ "$og_name" != "$new_name" ]]; then
-            sed -i \
-              's/^version =.*$/version = ${{ format(
-                '\"{0}-{1}\"', 
-                github.event.inputs.tag, 
-                github.event.inputs.revision ) }}/' \
-              ${og_name}
-            mv -v ${og_name} ${new_name}
-          fi
+
+        og_name=$(basename *.rockspec)
+        new_name=${og_name/-${{github.event.inputs.tag}}-[0-9]/-${{ github.event.inputs.tag }}-${{ github.event.inputs.revision }}}
+
+        if [[ "$og_name" != "$new_name" ]]; then
+          sed -i \
+            's/^version =.*$/version = ${{ format(
+              '\"{0}-{1}\"', 
+              github.event.inputs.tag,
+              github.event.inputs.revision ) }}/' \
+            ${og_name}
+          mv -v ${og_name} ${new_name}
         fi
 
     - name: Get file changes
@@ -201,14 +200,15 @@ jobs:
     - name: Commit files
       id: commit
       run: |
-        tag_message="$(git tag -l --format='%(contents)' ${GITHUB_REF##*/})"
+        tag_message="$(git tag -l --format='%(contents)' ${ needs.lint-and-update.outputs.tag })"
         git config --local user.email ${{ env.GIT_AUTHOR_EMAIL }}
         git config --local user.name ${{ env.GIT_AUTHOR_NAME }}
         git add *.rockspec
         git commit -m "[Luarocks] Update rockspec to ${{ needs.lint-and-update.outputs.tag }}"
-        if ${{ startsWith(github.ref, 'refs/tags/') }}; then
+        [[ ! -z "${{ github.event.inputs.tag }}" ]] && \
+          git tag -a "${{ needs.lint-and-update.outputs.tag }}" -m "${tag_message} ${{ github.event.inputs.tag && '-f' }}"
+        [[ "${{ startsWith(github.ref, 'refs/tags/') }}" == "true" ]] && \
           git tag -a "release/${{ needs.lint-and-update.outputs.tag }}" -m "${tag_message} ${{ github.event.inputs.tag && '-f' }}"
-        fi
 
     - name: Push release tag
       uses: ad-m/github-push-action@master
@@ -225,7 +225,8 @@ jobs:
         force: ${{ github.event.inputs.tag && 'true' || 'false' }}
 
   deploy:
-    needs: [lint-and-update, release]
+    needs: lint-and-update
+    if: needs.lint-and-update.outputs.clean == 'false' || github.event.inputs.deploy == 'true'
     runs-on: ubuntu-latest
 
     steps:
@@ -250,6 +251,6 @@ jobs:
       run: |
         cd ${{ needs.lint-and-update.outputs.name }}
         luarocks upload \
-          ${{ github.event.inputs.tag && '--force' }} \
+          ${{ github.event.inputs.tag || github.event.inputs.deploy == 'true' && '--force' }} \
           --api-key="${{ secrets.LUAROCKS_API_KEY }}" \
           "${{ needs.lint-and-update.outputs.rockspec }}"
