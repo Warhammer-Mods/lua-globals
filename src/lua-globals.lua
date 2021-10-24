@@ -2,8 +2,9 @@
 ---------------------------------------------------------------------------------------------------------------------------------------
 -- Display list of globals used by your Lua script
 ---------------------------------------------------------------------------------------------------------------------------------------
--- Version: 2021-10-20
--- License: MIT (see at the end of this file)
+-- Version: 2021-10-25
+-- License: MIT (see LICENSE file)
+-- By: Egor Skriptunoff
 -- Updated by: im-mortal
 --
 -- Reads your Lua script from STDIN
@@ -13,13 +14,13 @@
 -- Usage examples (both Windows and Linux):
 --
 --    How to display all the globals access (both read and write) from two files
---       lua show_globals.lua --mode RW --lua-version 51 your_script.lua src/another_script.lua
+--       show_globals.lua --mode RW --lua-version 51 your_script.lua src/another_script.lua
 --
 --    How to display only write access to globals from stdin
---       lua show_globals.lua -m W -i < your_script.lua
+--       show_globals.lua -m W -i < your_script.lua
 --
 --    How to set 5.3 as Lua version for interpreting "your_script.lua"
---       lua show_globals.lua -l 53 your_script.lua
+--       show_globals.lua -l 53 your_script.lua
 
 local argparse = require "argparse"
 
