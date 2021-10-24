@@ -23,7 +23,19 @@
     {
       "label": "install-macos",
       "type": "shell",
-      "command": "luarocks install --lua-dir=$(brew --prefix)/opt/lua@5.1 --tree .luarocks  --only-deps *.rockspec",
+      "command": "luarocks install --lua-dir=$(brew --prefix)/opt/lua@5.4 --tree .luarocks --only-deps *.rockspec",
+      "problemMatcher": []
+    },
+    {
+      "label": "build",
+      "type": "shell",
+      "command": "luarocks build --tree .luarocks",
+      "problemMatcher": []
+    },
+    {
+      "label": "build-macos",
+      "type": "shell",
+      "command": "luarocks build --lua-dir=$(brew --prefix)/opt/lua@5.4 --tree .luarocks",
       "problemMatcher": []
     }
   ]
