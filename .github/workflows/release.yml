@@ -255,6 +255,6 @@ jobs:
       run: |
         cd ${{ needs.lint-and-update.outputs.name }}
         luarocks upload \
-          ${{ github.event.inputs.tag || github.event.inputs.deploy == 'true' && '--force' }} \
+          --force \
           --api-key="${{ secrets.LUAROCKS_API_KEY }}" \
-          "${{ needs.lint-and-update.outputs.rockspec }}"
+          *.rockspec
