@@ -10,7 +10,7 @@ With [Luarocks](https://luarocks.org) installed, run
 luarocks install lua-globals
 ```
 
-Otherwise, download [argparse](https://github.com/luarocks/argparse/raw/master/src/argparse.lua) and place it into the directory for Lua libraries or your working directory.
+Otherwise, download [lua-globals.lua](src/lua-globals.lua), and its dependency, [argparse](https://github.com/luarocks/argparse/raw/master/src/argparse.lua), and place them into the directory for Lua libraries or your working directory so that you can call `lua-globals` from shell.
 
 Additionally, do the same for [inspect](https://github.com/kikito/inspect.lua/raw/master/inspect.lua) if you plan to use the `-d` | `--debug` flag.
 
