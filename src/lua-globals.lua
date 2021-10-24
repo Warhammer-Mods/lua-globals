@@ -12,24 +12,53 @@
 --
 -- Usage examples (both Windows and Linux):
 --
---    How to display all the globals access (both read and write)
---       lua show_globals.lua RW 51 < your_script.lua
+--    How to display all the globals access (both read and write) from two files
+--       lua show_globals.lua --mode RW --lua-version 51 your_script.lua src/another_script.lua
 --
---    How to display only write access to globals
---       lua show_globals.lua W < your_script.lua
+--    How to display only write access to globals from stdin
+--       lua show_globals.lua -m W -i < your_script.lua
 --
 --    How to set 5.3 as Lua version for interpreting "your_script.lua"
---       lua show_globals.lua W < your_script.lua
+--       lua show_globals.lua -l 53 your_script.lua
 
-local read_write_access = (arg[1] or "RW"):upper()  -- what type of access (read/write/both) should be displayed
-read_write_access = {R = read_write_access:find"R", W = read_write_access:find"W"}
-assert(read_write_access.R or read_write_access.W, "First argument must be R, W or RW")
+local argparse = require "argparse"
 
-local Lua_version = (arg[2] or "54")  -- sets Lua version "your_script.lua" was written for
+local argparser = argparse()
+   :name "lua-globals"
+   :description "Writes list of globals used by a supplied Lua script to STDOUT or parsing error to STDERR."
+   :epilog "For more information, see:\nhttps://github.com/Warhammer-Mods/lua-globals"
+
+argparser:mutex(
+   argparser:argument "input"
+      :description "Input file. If no provided, reads from STDIN"
+      :args "*",
+   argparser:flag "-i --read-from-stdin"
+      :description "Read from stdin."
+)
+
+argparser:option "-l --lua-version"
+   :description "Script Lua version target"
+   :choices { "51", "52", "53", "54" }
+   :default "54"
+argparser:option "-m --mode"
+   :description "Globals reporting mode, R is for read access, W is for write access, RW if for all globals access."
+   :choices {"R", "W", "RW"}
+   :default "RW"
+argparser:flag "-d --debug"
+   :description "Enables debug output."
+
+local args = argparser:parse()
+
+if args.debug == true then
+   local inspect = require "inspect"
+   print("args = " .. inspect(args) .. "\n")
+end
+
+local read_write_access = { R = args.mode:find"R", W = args.mode:find"W" }
+
 local all_supported_versions = { ["51"] = true, ["52"] = true, ["53"] = true, ["54"] = true }
-assert(all_supported_versions[Lua_version], "Second argument must be either '51', '52', '53' or '54'")
 
-local parser
+local lua_parser
 do
 
    local
@@ -491,7 +520,7 @@ do
 
    local all_parsers = {}
 
-   function parser(version)
+   function lua_parser(version)
       version = gsub(version, "%D", "")
       local parser_for_version = all_parsers[version]
       if not parser_for_version then
@@ -1452,46 +1481,64 @@ do
    end
 end
 
+local function lua_parse(input)
+   local globals = {}
+   local global_names = {}
+   do
+      local last_global_name, last_global_coord
 
-local program = io.read"*a"
-local globals = {}
-local global_names = {}
-do
-   local last_global_name, last_global_coord
-
-   local function flush_last_global_name(write_access)
-      if last_global_name then
-         table.insert(globals[last_global_name][write_access and "W" or "R"], last_global_coord)
-         last_global_name, last_global_coord = nil
-      end
-   end
-
-   local function global_catcher(lexem)
-      if not lexem then
-         flush_last_global_name(true)
-      else
-         flush_last_global_name()
-         last_global_name = lexem.value
-         if not globals[last_global_name] then
-            globals[last_global_name] = {R = {}, W = {}}
-            table.insert(global_names, last_global_name)
+      local function flush_last_global_name(write_access)
+         if last_global_name then
+            table.insert(globals[last_global_name][write_access and "W" or "R"], last_global_coord)
+            last_global_name, last_global_coord = nil
          end
-         last_global_coord = lexem.line..":"..lexem.col
+      end
+
+      local function global_catcher(lexem)
+         if not lexem then
+            flush_last_global_name(true)
+         else
+            flush_last_global_name()
+            last_global_name = lexem.value
+            if not globals[last_global_name] then
+               globals[last_global_name] = {R = {}, W = {}}
+               table.insert(global_names, last_global_name)
+            end
+            last_global_coord = lexem.line..":"..lexem.col
+         end
+      end
+
+      assert(lua_parser(args.lua_version)(input, global_catcher))
+
+      flush_last_global_name()
+   end
+   table.sort(global_names)
+   for _, name in ipairs(global_names) do
+      for _, access_type in ipairs{"W", "R"} do
+         if read_write_access[access_type] then
+            local list_line_col = table.concat(globals[name][access_type], ", ")
+            if list_line_col ~= "" then
+               print(({R = "read", W = "write"})[access_type], name, list_line_col)
+            end
+         end
       end
    end
 
-   assert(parser(Lua_version)(program, global_catcher))
-
-   flush_last_global_name()
 end
-table.sort(global_names)
-for _, name in ipairs(global_names) do
-   for _, access_type in ipairs{"W", "R"} do
-      if read_write_access[access_type] then
-         local list_line_col = table.concat(globals[name][access_type], ", ")
-         if list_line_col ~= "" then
-            print(({R = "read", W = "write"})[access_type], name, list_line_col)
-         end
-      end
+
+local input
+if args.read_from_stdin or #args.input == 0 then
+   input = assert(io.read"*a")
+   lua_parse(input)
+elseif type(args.input) == "string" then
+   print(tostring(args.input) .. ":")
+   input = assert(io.input(args.input):read"*all", "ERROR: Cannot read file!")
+   lua_parse(input)
+else
+   for _, file in pairs(args.input) do
+      print(tostring(file) .. ":")
+      input = assert(io.input(file):read"*all", "ERROR: Cannot read file!")
+      lua_parse(input)
+      print("")
    end
 end
