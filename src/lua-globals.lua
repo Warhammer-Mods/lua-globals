@@ -34,7 +34,7 @@ argparser:mutex(
       :description "Input file. If no provided, reads from STDIN"
       :args "*",
    argparser:flag "-i --read-from-stdin"
-      :description "Read from stdin."
+      :description "Read from STDIN."
 )
 
 argparser:option "-l --lua-version"
