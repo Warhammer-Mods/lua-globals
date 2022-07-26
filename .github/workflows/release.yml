@@ -27,6 +27,8 @@ env:
   LUACHECK_CONFIG: ".luacheckrc"
   LUA_VERSION: "5.4"
   LUAROCKS_VERSION: "3.7.0"
+  WORKFLOW_REPO: Warhammer-Mods/workflows
+  WORKFLOW_REPO_REF: v1
 
 
 jobs:
@@ -96,9 +98,15 @@ jobs:
     - name: Luacheck Lint
       id: luacheck
       shell: bash --noprofile --norc {0}
+      env:
+        matcher: luacheck-plain.json
       run: |
-        echo "::add-matcher::${{ steps.info.outputs.name }}/.github/luacheck-plain.json"
+        curl -sL --fail \
+          -o ${matcher} \
+          "${GITHUB_SERVER_URL}/${{ env.WORKFLOW_REPO }}/raw/${{ env.WORKFLOW_REPO_REF }}/.github/${matcher}"
+        
         cd ${{ steps.info.outputs.name }}
+        echo "::add-matcher::${matcher}"
         luacheck *.rockspec \
           --formatter plain \
           --codes --ranges \

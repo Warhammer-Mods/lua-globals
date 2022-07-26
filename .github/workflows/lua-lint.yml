@@ -32,6 +32,7 @@ env:
   LUA_VERSION: "5.4"
   LUAROCKS_VERSION: "3.8.0"
   WORKFLOW_REPO: Warhammer-Mods/workflows
+  WORKFLOW_REPO_REF: v1
 
 jobs:
 
@@ -56,11 +57,11 @@ jobs:
       id: luacheck
       shell: bash --noprofile --norc {0}
       env:
-        matcher: .github/luacheck-plain.json
+        matcher: luacheck-plain.json
       run: |
         curl -sL --fail \
           -o ${matcher} \
-          "${GITHUB_SERVER_URL}/${{ env.WORKFLOW_REPO }}/raw/main/${matcher}"
+          "${GITHUB_SERVER_URL}/${{ env.WORKFLOW_REPO }}/raw/${{ env.WORKFLOW_REPO_REF }}/.github/${matcher}"
 
         echo "::add-matcher::${matcher}"
         luacheck ${{ env.FILES_TO_CHECK }} \
