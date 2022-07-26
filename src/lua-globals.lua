@@ -39,7 +39,7 @@ argparser:mutex(
 
 argparser:option "-l --lua-version"
    :description "Script Lua version target"
-   :choices { "51", "52", "53", "54" }
+   :choices { "5.1", "5.2", "5.3", "5.4" }
    :default "54"
 argparser:option "-m --mode"
    :description "Globals reporting mode, R is for read access, W is for write access, RW if for all globals access."
@@ -57,6 +57,7 @@ end
 
 local read_write_access = { R = args.mode:find"R", W = args.mode:find"W" }
 
+local lua_version = args.lua_version:gsub("%.", "")
 local all_supported_versions = { ["51"] = true, ["52"] = true, ["53"] = true, ["54"] = true }
 
 local lua_parser
@@ -1509,7 +1510,7 @@ local function lua_parse(input)
          end
       end
 
-      assert(lua_parser(args.lua_version)(input, global_catcher))
+      assert(lua_parser(lua_version)(input, global_catcher))
 
       flush_last_global_name()
    end
