@@ -1,5 +1,5 @@
 package = "lua-globals"
-version = "develop-9"
+version = "develop-10"
 source = {
    url = "git+https://github.com/Warhammer-Mods/lua-globals",
    tag = "develop"
@@ -12,7 +12,7 @@ description = {
 dependencies = {
    "lua >= 5.1, < 5.5",
    "argparse ~> 0.7",
-   "inspect ~> 3.1.1"
+   "inspect ~> 3.1.3"
 }
 build = {
    type = "builtin",
