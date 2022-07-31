@@ -19,7 +19,8 @@
       "type": "shell",
       "command": "luarocks install --tree .luarocks --only-deps *.rockspec",
       "osx": {
-        "command": "luarocks install --lua-dir=$(brew --prefix)/opt/lua@5.4 --tree .luarocks --only-deps *.rockspec"
+        // Requires lua to be installed via Homebrew (https://brew.sh/)
+        "command": "luarocks install --lua-dir=$(brew --prefix lua) --tree .luarocks --only-deps *.rockspec"
       },
       "problemMatcher": []
     },
@@ -28,7 +29,8 @@
       "type": "shell",
       "command": "luarocks build --tree .luarocks",
       "osx": {
-        "command": "luarocks build --lua-dir=$(brew --prefix)/opt/lua@5.4 --tree .luarocks"
+        // Requires lua to be installed via Homebrew (https://brew.sh/)
+        "command": "luarocks build --lua-dir=$(brew --prefix lua) --tree .luarocks"
       },
       "problemMatcher": []
     }
