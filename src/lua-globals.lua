@@ -40,7 +40,7 @@ argparser:mutex(
 argparser:option "-l --lua-version"
    :description "Script Lua version target"
    :choices { "5.1", "5.2", "5.3", "5.4" }
-   :default "54"
+   :default "5.4"
 argparser:option "-m --mode"
    :description "Globals reporting mode, R is for read access, W is for write access, RW if for all globals access."
    :choices {"R", "W", "RW"}
